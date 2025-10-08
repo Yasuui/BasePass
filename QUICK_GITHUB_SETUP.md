@@ -51,12 +51,12 @@ Use this URL for your hackathon submission.
 Click ⚙️ next to "About" on GitHub, add:
 - `blockchain` `ethereum` `base-network` `nft` `solidity` `hackathon`
 
-### Update Placeholders in README
+### Update Contract Address (After Deployment)
 
 Edit on GitHub or locally:
-- Replace `[Your Name]` with your actual name
-- Replace `[@YourUsername]` with your GitHub handle
-- Replace `[Contract Address]` after deployment
+- Replace `[Contract Address]` with deployed address
+- Replace `[Deployment URL]` with frontend URL
+- Replace `[Demo Video]` with video link
 
 ```bash
 # After editing locally:

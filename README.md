@@ -209,9 +209,9 @@ npm test
 
 ## 🏆 Hackathon Information
 
-**Built for**: [Hackathon Name]  
+**Built for**: Base Batches 002  
 **Category**: Web3 / NFT / Social  
-**Team**: BasePass Team  
+**Developer**: Yonis D (Solo Developer)  
 **Built with**: Solidity, Hardhat, Next.js, Base Network
 
 ### Key Features for Judges
@@ -251,11 +251,9 @@ npm test
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Contributors
+### Developer
 
-- [Your Name] - Lead Developer
-- [Team Member 2] - Smart Contract Developer
-- [Team Member 3] - Frontend Developer
+- **Yonis D** - Solo Developer (Smart Contracts, Frontend, Documentation)
 
 ## 📄 License
 
@@ -270,9 +268,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- GitHub: [@YourUsername](https://github.com/YourUsername)
-- Twitter: [@YourTwitter](https://twitter.com/YourTwitter)
-- Email: your.email@example.com
+- GitHub: [@Yasuui](https://github.com/Yasuui)
+- Repository: [BasePass](https://github.com/Yasuui/BasePass)
+- https://x.com/Yasu_eth
 
 ---
 

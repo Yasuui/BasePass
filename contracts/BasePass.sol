@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title BasePass - Onchain Event Passport System
- * @author BasePass Team
+ * @author Yonis D
  * @notice This contract implements an onchain passport NFT system for event attendance tracking
  * @dev Extends ERC721 with signature-based stamp claiming for proof of attendance
  * 
