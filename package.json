@@ -1,0 +1,28 @@
+{
+  "name": "basepass",
+  "version": "1.0.0",
+  "description": "BasePass - Onchain Event Passport",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "node": "hardhat node"
+  },
+  "keywords": ["ethereum", "hardhat", "smart-contracts", "base", "nft"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@types/node": "^22.0.0",
+    "hardhat": "^2.22.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "ethers": "^6.13.0"
+  }
+}
+
