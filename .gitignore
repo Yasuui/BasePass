@@ -1,5 +1,7 @@
 node_modules
 .env
+.env.*
+!.env.example
 coverage
 coverage.json
 typechain
@@ -16,6 +18,7 @@ build
 # IDE
 .idea
 .vscode
+.cursor
 *.swp
 *.swo
 *~
@@ -23,4 +26,9 @@ build
 # OS
 .DS_Store
 Thumbs.db
+
+# Internal documentation (not for public repo)
+steps.md
+PHASE_*.md
+QUICK_GITHUB_SETUP.md
 
