@@ -243,9 +243,9 @@ npm test
 
 ### Live Demo
 
-- **Smart Contract**: [Contract Address on Base Sepolia]
-- **Frontend**: [Deployment URL]
-- **Demo Video**: [Video Link]
+- **Smart Contract**: [0x65AaFd972B45dd0108BFeDc1830C56a95fc52310](https://sepolia.basescan.org/address/0x65AaFd972B45dd0108BFeDc1830C56a95fc52310)
+- **Frontend**: http://localhost:3000 (local development)
+- **Demo Video**: [Coming Soon]
 
 ## 🤝 Contributing
 
