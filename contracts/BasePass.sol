@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./EventStamp.sol";
 
 /**
  * @title BasePass - Onchain Event Passport System
@@ -35,9 +36,8 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
     /// @dev Counter for event IDs, starts at 1
     uint256 private _eventIdCounter;
 
-    /// @notice Mapping to track which stamps have been claimed for each passport
-    /// @dev tokenId => eventId => claimed status
-    mapping(uint256 => mapping(uint256 => bool)) public stamps;
+    /// @notice Reference to the EventStamp contract for minting stamp NFTs
+    EventStamp public immutable stampContract;
 
     /// @notice Mapping to prevent replay attacks by tracking used nonces
     /// @dev nonce => used status
@@ -65,6 +65,13 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
     /// @dev eventId => Event struct
     mapping(uint256 => Event) public events;
 
+    /// @notice Mapping to track last event creation time per address for rate limiting
+    /// @dev address => timestamp of last event creation
+    mapping(address => uint256) public lastEventCreation;
+
+    /// @notice Cooldown period between event creations (1 hour)
+    uint256 public constant EVENT_COOLDOWN = 1 hours;
+
     /// @notice Emitted when a new passport NFT is minted
     /// @param owner Address that received the passport
     /// @param tokenId ID of the minted passport token
@@ -86,8 +93,14 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
      * @notice Constructor initializes the ERC721 token and ownership
      * @dev Sets token name to "BasePass Passport" and symbol to "BPASS"
      * @dev Initializes counters at 1 to avoid using tokenId/eventId of 0
+     * @param _stampContract Address of the EventStamp contract for minting stamps
+     * 
+     * Requirements:
+     * - _stampContract cannot be the zero address
      */
-    constructor() ERC721("BasePass Passport", "BPASS") Ownable(msg.sender) {
+    constructor(address _stampContract) ERC721("BasePass Passport", "BPASS") Ownable(msg.sender) {
+        require(_stampContract != address(0), "Invalid stamp contract address");
+        stampContract = EventStamp(_stampContract);
         _tokenIdCounter = 1;
         _eventIdCounter = 1;
     }
@@ -96,11 +109,16 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
      * @notice Mints a new passport NFT to the caller
      * @dev Uses _safeMint to ensure recipient can handle ERC721 tokens
      * @dev Protected by nonReentrant modifier to prevent reentrancy attacks
-     * @dev Anyone can mint a passport - no restrictions
+     * @dev Limited to one passport per wallet (soulbound identity)
+     * 
+     * Requirements:
+     * - Caller must not already own a passport
      * 
      * Emits a {PassportMinted} event
      */
     function mintPassport() external nonReentrant {
+        require(balanceOf(msg.sender) == 0, "Already owns a passport");
+        
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
 
@@ -110,7 +128,7 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
 
     /**
      * @notice Creates a new event with metadata and authorized signer
-     * @dev Anyone can create events - consider adding access control for production
+     * @dev Includes rate limiting and input validation to prevent abuse
      * @param name Human-readable name for the event
      * @param description Detailed description of the event
      * @param iconUrl URL pointing to event icon/image (e.g., IPFS link)
@@ -118,7 +136,10 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
      * @return eventId The ID of the newly created event
      * 
      * Requirements:
-     * - `signer` cannot be the zero address
+     * - Rate limit: Must wait EVENT_COOLDOWN (1 hour) between creations
+     * - Name: Must be between 1-100 characters
+     * - Description: Must not exceed 500 characters
+     * - Signer: Cannot be the zero address
      * 
      * Emits an {EventCreated} event
      * 
@@ -131,8 +152,20 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
         string memory iconUrl,
         address signer
     ) external returns (uint256) {
+        // Rate limiting: enforce cooldown between event creations
+        require(
+            block.timestamp >= lastEventCreation[msg.sender] + EVENT_COOLDOWN,
+            "Rate limit: wait 1 hour between creating events"
+        );
+
+        // Input validation
         require(signer != address(0), "Invalid signer address");
+        require(bytes(name).length > 0 && bytes(name).length <= 100, "Name must be 1-100 characters");
+        require(bytes(description).length <= 500, "Description must not exceed 500 characters");
         
+        // Update rate limiting tracker
+        lastEventCreation[msg.sender] = block.timestamp;
+
         uint256 eventId = _eventIdCounter;
         _eventIdCounter++;
 
@@ -151,7 +184,7 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
 
     /**
      * @notice Claims a stamp for a passport using a signed QR code
-     * @dev This is the core function for proof of attendance - validates signature and records claim
+     * @dev This is the core function for proof of attendance - validates signature and mints stamp NFT
      * @param tokenId The passport token ID to receive the stamp
      * @param eventId The event ID to claim the stamp for
      * @param nonce Unique random value to prevent replay attacks
@@ -193,8 +226,8 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
         // Verify event exists
         require(events[eventId].exists, "Event does not exist");
 
-        // Verify not already claimed
-        require(!stamps[tokenId][eventId], "Stamp already claimed");
+        // Verify not already claimed (check if passport owner has stamp for this event)
+        require(!stampContract.hasStampForEvent(msg.sender, eventId), "Stamp already claimed");
 
         // Verify nonce not used
         require(!usedNonces[nonce], "Nonce already used");
@@ -211,9 +244,11 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
 
         require(recoveredSigner == events[eventId].signer, "Invalid signature");
 
-        // Mark stamp as claimed and nonce as used
-        stamps[tokenId][eventId] = true;
+        // Mark nonce as used
         usedNonces[nonce] = true;
+
+        // Mint stamp NFT to passport owner
+        stampContract.mintStamp(msg.sender, eventId, tokenId);
 
         emit StampClaimed(tokenId, eventId, msg.sender);
     }
@@ -236,9 +271,27 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
      * @param tokenId The passport token ID to check
      * @param eventId The event ID to check
      * @return bool True if the stamp has been claimed, false otherwise
+     * @dev Queries the EventStamp contract to check if the passport owner has a stamp for this event
      */
     function hasStamp(uint256 tokenId, uint256 eventId) external view returns (bool) {
-        return stamps[tokenId][eventId];
+        address passportOwner = ownerOf(tokenId);
+        return stampContract.hasStampForEvent(passportOwner, eventId);
+    }
+
+    /**
+     * @notice Returns all stamp token IDs for a passport owner
+     * @param passportOwner Address of the passport owner
+     * @return stampIds Array of stamp token IDs owned by the passport holder
+     */
+    function getPassportStamps(address passportOwner) external view returns (uint256[] memory) {
+        uint256 stampBalance = stampContract.balanceOf(passportOwner);
+        uint256[] memory stampIds = new uint256[](stampBalance);
+        
+        for (uint256 i = 0; i < stampBalance; i++) {
+            stampIds[i] = stampContract.tokenOfOwnerByIndex(passportOwner, i);
+        }
+        
+        return stampIds;
     }
 
     /**
@@ -257,6 +310,32 @@ contract BasePass is ERC721, Ownable, ReentrancyGuard {
      */
     function totalEvents() external view returns (uint256) {
         return _eventIdCounter - 1;
+    }
+
+    /**
+     * @notice Override _update to make passports non-transferable (soulbound)
+     * @dev Only allows minting (from == address(0)), blocks all transfers
+     * @param to Address receiving the token
+     * @param tokenId Token ID being transferred
+     * @param auth Address authorized to perform the update
+     * @return address The previous owner of the token
+     * 
+     * Requirements:
+     * - Can only be called during minting (from must be zero address)
+     * - All transfer attempts will revert
+     */
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal virtual override returns (address) {
+        address from = _ownerOf(tokenId);
+        
+        // Only allow minting (from == address(0))
+        // Block all transfers (from != address(0))
+        require(from == address(0), "BasePass: passports are non-transferable (soulbound)");
+        
+        return super._update(to, tokenId, auth);
     }
 }
 

@@ -1,7 +1,8 @@
 /**
- * BasePass Contract Deployment Script
+ * BasePass & EventStamp Contract Deployment Script
  * 
- * This script deploys the BasePass contract to the specified network.
+ * This script deploys both EventStamp and BasePass contracts to the specified network.
+ * Deployment order matters: EventStamp must be deployed first as BasePass depends on it.
  * 
  * Usage:
  * - Local network: npx hardhat run scripts/deploy.ts
@@ -15,7 +16,7 @@
 import { ethers } from "hardhat"
 
 async function main() {
-  console.log("🚀 Starting BasePass deployment...")
+  console.log("🚀 Starting BasePass System Deployment...")
   console.log("=====================================")
 
   // Get the deployer account
@@ -31,40 +32,57 @@ async function main() {
   console.log(`🌐 Network: ${network.name} (Chain ID: ${network.chainId})`)
   console.log("=====================================\n")
 
-  // Get the contract factory
-  console.log("📦 Getting BasePass contract factory...")
-  const BasePass = await ethers.getContractFactory("BasePass")
-
-  // Deploy the contract
-  console.log("⏳ Deploying BasePass contract...")
-  const basePass = await BasePass.deploy()
+  // STEP 1: Deploy EventStamp Contract
+  console.log("📦 Step 1/2: Deploying EventStamp contract...")
+  const EventStamp = await ethers.getContractFactory("EventStamp")
+  const eventStamp = await EventStamp.deploy()
+  await eventStamp.waitForDeployment()
+  const stampAddress = await eventStamp.getAddress()
   
-  // Wait for deployment to complete
+  console.log("✅ EventStamp deployed successfully!")
+  console.log(`📍 EventStamp address: ${stampAddress}\n`)
+
+  // STEP 2: Deploy BasePass Contract (with EventStamp address)
+  console.log("📦 Step 2/2: Deploying BasePass contract...")
+  const BasePass = await ethers.getContractFactory("BasePass")
+  const basePass = await BasePass.deploy(stampAddress)
   await basePass.waitForDeployment()
+  const basePassAddress = await basePass.getAddress()
+  
+  console.log("✅ BasePass deployed successfully!")
+  console.log(`📍 BasePass address: ${basePassAddress}\n`)
 
-  // Get the deployed contract address
-  const address = await basePass.getAddress()
-  console.log("\n✅ BasePass deployed successfully!")
-  console.log("=====================================")
-  console.log(`📍 Contract address: ${address}`)
-  console.log("=====================================\n")
+  // STEP 3: Grant MINTER_ROLE to BasePass contract
+  console.log("🔐 Step 3/3: Granting MINTER_ROLE to BasePass...")
+  const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"))
+  const grantTx = await eventStamp.grantRole(MINTER_ROLE, basePassAddress)
+  await grantTx.wait()
+  console.log("✅ MINTER_ROLE granted successfully!\n")
 
-  // Verify initial state
-  console.log("🔍 Verifying initial contract state...")
+  // Verify deployment
+  console.log("🔍 Verifying deployment...")
   const totalPassports = await basePass.totalPassports()
   const totalEvents = await basePass.totalEvents()
+  const totalStamps = await eventStamp.totalStamps()
   const owner = await basePass.owner()
+  const hasRole = await eventStamp.hasRole(MINTER_ROLE, basePassAddress)
 
+  console.log("=====================================")
+  console.log("📊 Contract State:")
   console.log(`   Total Passports: ${totalPassports}`)
   console.log(`   Total Events: ${totalEvents}`)
+  console.log(`   Total Stamps: ${totalStamps}`)
   console.log(`   Contract Owner: ${owner}`)
+  console.log(`   BasePass can mint stamps: ${hasRole}`)
+  console.log("=====================================\n")
 
   // Save deployment info
-  console.log("\n📝 Deployment Information:")
+  console.log("📝 Deployment Summary:")
   console.log("=====================================")
   console.log(`Network: ${network.name}`)
   console.log(`Chain ID: ${network.chainId}`)
-  console.log(`Contract: ${address}`)
+  console.log(`EventStamp: ${stampAddress}`)
+  console.log(`BasePass: ${basePassAddress}`)
   console.log(`Deployer: ${deployer.address}`)
   console.log(`Block: ${await ethers.provider.getBlockNumber()}`)
   console.log("=====================================")
@@ -72,14 +90,21 @@ async function main() {
   // Network-specific instructions
   if (network.chainId === 84532n) {
     console.log("\n🔗 Base Sepolia Testnet")
-    console.log(`View on BaseScan: https://sepolia.basescan.org/address/${address}`)
+    console.log(`EventStamp: https://sepolia.basescan.org/address/${stampAddress}`)
+    console.log(`BasePass: https://sepolia.basescan.org/address/${basePassAddress}`)
     console.log("\n📋 Next steps:")
-    console.log("1. Verify contract on BaseScan")
-    console.log("2. Update frontend config with contract address")
-    console.log("3. Test contract functions on testnet")
+    console.log("1. Verify both contracts on BaseScan")
+    console.log("2. Update frontend/.env.local:")
+    console.log(`   NEXT_PUBLIC_CONTRACT_ADDRESS=${basePassAddress}`)
+    console.log(`   NEXT_PUBLIC_STAMP_CONTRACT_ADDRESS=${stampAddress}`)
+    console.log("3. Update frontend/src/config/contract.ts with new ABIs")
+    console.log("4. Test the complete flow on testnet")
   } else if (network.chainId === 1337n || network.chainId === 31337n) {
     console.log("\n🏠 Local Hardhat Network")
-    console.log("Contract is ready for local testing")
+    console.log("Contracts are ready for local testing")
+    console.log("\n📋 Update frontend/.env.local:")
+    console.log(`   NEXT_PUBLIC_CONTRACT_ADDRESS=${basePassAddress}`)
+    console.log(`   NEXT_PUBLIC_STAMP_CONTRACT_ADDRESS=${stampAddress}`)
   }
 
   console.log("\n✨ Deployment complete!\n")
