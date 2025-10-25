@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAccount, useReadContract } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { basePassAddress, basePassABI } from '@/config/contract'
-import { Avatar, Name, Badge, useName } from '@coinbase/onchainkit/identity'
+import { Avatar, Name, useName } from '@coinbase/onchainkit/identity'
 import QRCode from 'qrcode'
 
 interface PassportCardProps {
@@ -135,8 +135,6 @@ export function PassportCard({ tokenId, className = '' }: PassportCardProps) {
                     chain={base}
                     className="text-4xl font-bold text-white block mb-1"
                   />
-                  {/* Badge if user has a basename */}
-                  <Badge address={address} />
                 </div>
               </div>
               
