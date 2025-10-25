@@ -1,0 +1,19 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "next",
+    "name": "BasePass",
+    "iconUrl": "https://basepass.app/icon.png",
+    "homeUrl": "https://basepass.app",
+    "imageUrl": "https://basepass.app/preview.png",
+    "buttonTitle": "Open BasePass",
+    "splashImageUrl": "https://basepass.app/splash.png",
+    "splashBackgroundColor": "#4F46E5",
+    "webhookUrl": ""
+  }
+}
+

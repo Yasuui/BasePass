@@ -28,7 +28,8 @@ build
 Thumbs.db
 
 # Internal documentation (not for public repo)
-steps.md
-PHASE_*.md
-QUICK_GITHUB_SETUP.md
+*.md
+!README.md
+!LICENSE.md
+!CONTRIBUTING.md
 
