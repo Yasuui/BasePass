@@ -32,10 +32,19 @@ describe("BasePass", function () {
     // Get test signers from Hardhat
     ;[owner, user1, eventSigner] = await ethers.getSigners()
 
-    // Deploy a fresh BasePass contract
+    // Deploy the stamp contract that BasePass depends on
+    const EventStampFactory = await ethers.getContractFactory("EventStamp")
+    const eventStamp = await EventStampFactory.deploy()
+    await eventStamp.waitForDeployment()
+
+    // Deploy a fresh BasePass contract with its stamp dependency
     const BasePassFactory = await ethers.getContractFactory("BasePass")
-    basePass = await BasePassFactory.deploy()
+    basePass = await BasePassFactory.deploy(await eventStamp.getAddress())
     await basePass.waitForDeployment()
+
+    // Authorize BasePass to mint event stamps during claim tests
+    const minterRole = await eventStamp.MINTER_ROLE()
+    await eventStamp.grantRole(minterRole, await basePass.getAddress())
   })
 
   /**
@@ -216,4 +225,3 @@ describe("BasePass", function () {
     })
   })
 })
-
